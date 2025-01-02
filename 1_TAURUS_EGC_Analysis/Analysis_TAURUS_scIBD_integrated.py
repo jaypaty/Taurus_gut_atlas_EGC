@@ -44,6 +44,16 @@ display(adata.var.head())
 print(adata.obs.columns)
 
 
+# In[ ]:
+
+
+# Display rows in .var where 'mt' is True
+print(adata.var[adata.var["mt"] == True])
+
+# Display rows in .var where 'rp' is True
+print(adata.var[adata.var["rp"] == True])
+
+
 # In[4]:
 
 
@@ -92,6 +102,59 @@ adata_glial = adata[adata.obs["major"] == "Glial"]
 
 # Check the unique values in the 'cell_type' column after subsetting to ensure that subsetting worked
 adata_glial.obs["major"].unique()
+
+
+# In[ ]:
+
+
+# view basic qc metrics
+sc.pl.violin(adata_glial, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt', 'pct_counts_rp'], 
+             jitter=0.4, multi_panel=True)
+
+
+# In[ ]:
+
+
+# view basic qc metrics
+sc.pl.violin(adata_glial, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt', 'pct_counts_rp'], 
+             jitter=0.4, multi_panel=True)
+
+upper_lim = np.quantile(adata_glial.obs.n_genes_by_counts.values, .98)
+
+
+# In[ ]:
+
+
+upper_lim
+
+
+# In[ ]:
+
+
+# filter the cells with high genes by count values
+adata_glial = adata_glial[adata_glial.obs.n_genes_by_counts < upper_lim]
+
+
+# In[ ]:
+
+
+# filter the cells with high mt percentages
+adata_glial = adata_glial[adata_glial.obs.pct_counts_mt < 30]
+
+
+# In[ ]:
+
+
+# filter the cells with high ribosomal RNA gene expression
+adata_glial = adata_glial[adata_glial.obs.pct_counts_rp < 17.5]
+
+
+# In[ ]:
+
+
+# view basic qc metrics
+sc.pl.violin(adata_glial, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt', 'pct_counts_rp'], 
+             jitter=0.4, multi_panel=True)
 
 
 # In[10]:
@@ -198,9 +261,15 @@ adata_glial = adata_glial[
 umap_adata_glia_df = umap_adata_glia_df.reindex(adata_glial.obs.index)
 
 adata_glial = adata_glial[
-    (umap_adata_glia_df["UMAP2"] >= -8.8),
+    (umap_adata_glia_df["UMAP2"] >= -3.5),
     :
 ].copy()
+
+
+# In[47]:
+
+
+print(f"Number of cells in the subset: {adata_glial.n_obs}")
 
 
 # In[17]:
@@ -300,7 +369,7 @@ genes_in_adata = [gene for gene in cell_death_combined_list if gene in adata_gli
 # Extract expression data for these genes
 expression_data = adata_glial[:, genes_in_adata].X.toarray()  # Converts to dense format if sparse
 
-
+print(expression_data.head())
 
 
 # In[27]:
@@ -326,6 +395,7 @@ adata_glial.obs["cell_death_signature"] = mean_expression
 
 # List all metadata columns
 print(adata_glial.obs.columns)
+
 
 
 # In[30]:
@@ -400,23 +470,22 @@ sc.pl.umap(adata_EGC_UC, color = ["PLP1", "CXCL9", "cell_death_signature", "Infl
          size=50, alpha=0.7, vmax=25)
 
 
-# In[45]:
-
-
-sc.pl.umap(adata_glial, color = ["DCN", "LUM", "CCK", "MAL", "CCL2", "CD74"], cmap="viridis", add_outline=True,
-         size=50, alpha=0.7, vmax=4)
-
-
-# In[47]:
-
-
-print(f"Number of cells in the subset: {adata_glial.n_obs}")
-
-
-# In[48]:
+# In[ ]:
 
 
 adata_glial.obs["Remission_status"].unique()
+
+
+# In[ ]:
+
+
+# split violin plots by remission split by inflammation
+sc.pl.violin(adata_glial,
+            keys=["PLP1", "CXCL9", "cell_death_signature"],
+            groupby="Inflammation",
+            jitter=True,
+            stripplot=True,
+            rotation=45)
 
 
 # In[55]:
