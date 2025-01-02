@@ -40,11 +40,143 @@ display(adata.var.head())
 # In[ ]:
 
 
-# View the first few rows of metadata
-display(adata_glial.obs.head())
-display(adata_glial.obs["level_1_annot"].value_counts())
-display(adata_glial.obs["level_2_annot"].value_counts())
+# add mitochondrial identifyier column
+adata.var['mt'] = adata.var.index.str.startswith('MT-')
 
+
+# In[ ]:
+
+
+# import list of ribosomal genes
+ribo_url = "http://software.broadinstitute.org/gsea/msigdb/download_geneset.jsp?geneSetName=KEGG_RIBOSOME&fileType=txt"
+
+
+# In[ ]:
+
+
+# load the ribosomal genes
+ribo_genes = pd.read_table(ribo_url, skiprows=2, header = None)
+ribo_genes
+
+
+# In[ ]:
+
+
+# add metadata identifyier for ribosomal genes to the object
+adata.var['ribo'] = adata.var_names.isin(ribo_genes[0].values)
+
+
+# In[ ]:
+
+
+# calculate quality metrics such as mt and ribo percentage rna 
+sc.pp.calculate_qc_metrics(adata, qc_vars=['mt', 'ribo'], percent_top=None, log1p=False, inplace=True)
+
+
+# In[ ]:
+
+
+# view the qc metadata
+adata.obs
+
+
+# In[ ]:
+
+
+# filter for genes expressed in minimum of n cells
+sc.pp.filter_genes(adata_glial, min_cells=3)
+
+
+# In[ ]:
+
+
+# sort expression data by number of cells by total counts
+adata.var.sort_values('n_cells_by_counts')
+
+
+# In[ ]:
+
+
+# sort cell metadata by number of cells by total counts
+adata.obs.sort_values('n_genes_by_counts')
+
+
+# In[ ]:
+
+
+# plot QC metrics
+sc.pl.violin(adata, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt', 'pct_counts_ribo'], 
+             jitter=0.4, multi_panel=True)
+
+
+# In[ ]:
+
+
+# set 98th percentile filtering threshold for genes by counts
+import numpy as np
+
+upper_lim = np.quantile(adata.obs.n_genes_by_counts.values, .98)
+
+
+# In[ ]:
+
+
+# filter by the upper limit 
+adata= adata[adata.obs.n_genes_by_counts < upper_lim]
+
+
+# In[ ]:
+
+
+# filter by mitochondrial threshold
+adata = adata[adata.obs.pct_counts_mt < 8]
+
+
+# In[ ]:
+
+
+# filter by ribosomal threshold
+adata = adata[adata.obs.pct_counts_ribo < 17.5]
+
+
+# In[ ]:
+
+
+# view the filtering changes 
+print(adata)
+
+
+# In[ ]:
+
+
+# plot qc metrices post filtering
+sc.pl.violin(adata, ['n_genes_by_counts', 'total_counts', 'pct_counts_mt', 'pct_counts_ribo'], 
+             jitter=0.4, multi_panel=True)
+
+
+# In[ ]:
+
+
+
+
+
+# In[ ]:
+
+
+
+
+
+# In[3]:
+
+
+# Subset to only cells with metadata value 'Glia' 
+adata_glial = adata[adata.obs["level_2_annot"] == "Glia"]
+
+# Check the unique values in the 'cell_type' column after subsetting to ensure that subsetting worked
+adata_glial.obs["level_2_annot"].unique()
+
+# save subsetted adata object so as to work with the smaller object in the future
+adata_glial.write("./glia_gut_atlas_adata.h5ad")
 
 
 # In[4]:
@@ -60,17 +192,14 @@ adata_neuronal.obs["level_1_annot"].unique()
 adata_neuronal.write("./neuronal_gut_atlas_adata.h5ad")
 
 
-# In[3]:
+# In[ ]:
 
 
-# Subset to only cells with metadata value 'Glia' 
-adata_glial = adata[adata.obs["level_2_annot"] == "Glia"]
+# View the first few rows of metadata
+display(adata_glial.obs.head())
+display(adata_glial.obs["level_1_annot"].value_counts())
+display(adata_glial.obs["level_2_annot"].value_counts())
 
-# Check the unique values in the 'cell_type' column after subsetting to ensure that subsetting worked
-adata_glial.obs["level_2_annot"].unique()
-
-# save subsetted adata object so as to work with the smaller object in the future
-adata_glial.write("./glia_gut_atlas_adata.h5ad")
 
 
 # In[5]:
@@ -153,13 +282,13 @@ sc.pl.umap(
     color=["SOX10","CD74", "PLP1", "NRXN1", "RET", "PHOX2B", "CCK", "NES"],
     add_outline=True,
     vmax = 8,
-    show=False  # Do not immediately show the plot
+    show=False  # Do not immediately display plot
 )
 
 # Customize the axis ticks
-plt.gca().tick_params(axis="both", which="both", length=5, labelsize=10)  # Adjust size as needed
-plt.xlabel("UMAP1", fontsize=12)  # Add x-axis label
-plt.ylabel("UMAP2", fontsize=12)  # Add y-axis label
+plt.gca().tick_params(axis="both", which="both", length=5, labelsize=10)  
+plt.xlabel("UMAP1", fontsize=12)  
+plt.ylabel("UMAP2", fontsize=12)
 
 # save the fig
 plt.savefig("./umap_gut_cell_atlas_EGC_genes.png", dpi=300, bbox_inches="tight")
@@ -334,7 +463,7 @@ sc.pl.rank_genes_groups_violin(adata_glia_disease, n_genes=20, save="volcano_EGC
 # In[22]:
 
 
-sc.pl.umap(adata_glial, color = ["PLP1", "CXCL9", "CD74", "cell_death_signature"], cmap="viridis", save="umap_EGCs_gut_atlas.png", add_outline=True,
+sc.pl.umap(adata_glial, color = ["PLP1", "CXCL9", "HLA-DRA", "cell_death_signature"], cmap="viridis", save="umap_EGCs_gut_atlas.png", add_outline=True,
          size=50, alpha=0.7, vmax=2)
 
 
@@ -343,7 +472,7 @@ sc.pl.umap(adata_glial, color = ["PLP1", "CXCL9", "CD74", "cell_death_signature"
 # In[23]:
 
 
-sc.pl.umap(adata_glial, color = ["PLP1", "CXCL9", "CD74", "cell_death_signature"], cmap="viridis", save="umap_EGCs_gut_atlas_PLP1.png", add_outline=True,
+sc.pl.umap(adata_glial, color = ["PLP1", "CXCL9", "HLA-DRA", "cell_death_signature"], cmap="viridis", save="umap_EGCs_gut_atlas_PLP1.png", add_outline=True,
          size=50, alpha=0.7, vmax=12)
 
 
@@ -478,7 +607,7 @@ plt.show()
 # Create the UMAP plot
 sc.pl.umap(
     adata_neuronal,
-    color=["NES", "PHOX2B", "SNAP25", "ELAVL4", "UCHL1", "HAND2", "STMN2", "PLP1", "SOX10"],
+    color=["NES", "PHOX2B", "SNAP25", "ELAVL4", "UCHL1", "HAND2", "STMN2", "PLP1", "SOX10", "HLA-DRA"],
     add_outline=True,
     vmax = 2,
     size = 18,
@@ -566,31 +695,128 @@ adata_neuronal_disease = adata_neuronal[~adata_neuronal.obs["disease"].isin(["in
 
 
 
+# In[ ]:
+
+
+# Create the UMAP plot
+sc.pl.umap(
+    adata_neuronal_disease,
+    color="sample_category",
+    add_outline=True,
+    size = 30,
+    show=False  # Do not immediately show the plot
+)
+
+# Customize the axis ticks
+plt.gca().tick_params(axis="both", which="both", length=5, labelsize=10)  # Adjust size as needed
+plt.xlabel("UMAP1", fontsize=12)  # Add x-axis label
+plt.ylabel("UMAP2", fontsize=12)  # Add y-axis label
+
+# save figure
+plt.savefig("./umap_neuronal_lineages_cell_atlas_status.png", dpi = 300, bbox_inches="tight")
+
+# Show the updated plot
+plt.show()
+
+
+# In[ ]:
+
+
+# Create the UMAP plot
+sc.pl.umap(
+    adata_neuronal_disease,
+    color="disease",
+    add_outline=True,
+    vmax = 2,
+    size = 30,
+    show=False  # Do not immediately show the plot
+)
+
+# Customize the axis ticks
+plt.gca().tick_params(axis="both", which="both", length=5, labelsize=10)  # Adjust size as needed
+plt.xlabel("UMAP1", fontsize=12)  # Add x-axis label
+plt.ylabel("UMAP2", fontsize=12)  # Add y-axis label
+
+# save the fig
+plt.savefig("./umap_gut_cell_atlas_neuronal_disease.png", dpi=300, bbox_inches="tight")
+
+# Show the updated plot
+plt.show()
+
+
+# In[ ]:
+
+
+# Create the UMAP plot
+sc.pl.umap(
+    adata_neuronal_disease,
+    color="organ_groups",
+    add_outline=True,
+    size = 30,
+    show=False  # Do not immediately show the plot
+)
+
+# Customize the axis ticks
+plt.gca().tick_params(axis="both", which="both", length=5, labelsize=10)  # Adjust size as needed
+plt.xlabel("UMAP1", fontsize=12)  # Add x-axis label
+plt.ylabel("UMAP2", fontsize=12)  # Add y-axis label
+
+# save figure
+plt.savefig("./umap_neuronal_lineages_cell_atlas_organs.png", dpi = 300, bbox_inches="tight")
+
+# Show the updated plot
+plt.show()
+
+
+# In[ ]:
+
+
+# Create the UMAP plot
+sc.pl.umap(
+    adata_neuronal_disease,
+    color="level_2_annot",
+    add_outline=True,
+    size = 30,
+    show=False  # Do not immediately show the plot
+)
+
+# Customize the axis ticks
+plt.gca().tick_params(axis="both", which="both", length=5, labelsize=10)  # Adjust size as needed
+plt.xlabel("UMAP1", fontsize=12)  # Add x-axis label
+plt.ylabel("UMAP2", fontsize=12)  # Add y-axis label
+
+# save figure
+plt.savefig("./umap_neuronal_lineages_cell_atlas.png", dpi = 300, bbox_inches="tight")
+
+# Show the updated plot
+plt.show()
+
+
 # In[49]:
 
 
-sc.pl.umap(adata_neuronal, color = ["PLP1", "CD74", "CXCL9", "cell_death_signature"], cmap="viridis", save="umap_neuronal_gut_atlas.png", add_outline=True,
+sc.pl.umap(adata_neuronal, color = ["PLP1", ""HLA-DRA", "CXCL9", "cell_death_signature"], cmap="viridis", save="umap_neuronal_gut_atlas.png", add_outline=True,
          size=50, alpha=0.7, vmax=0.5)
 
 
 # In[50]:
 
 
-sc.pl.umap(adata_neuronal_disease, color = ["PLP1", "CD74", "CXCL9", "cell_death_signature"], cmap="viridis", save="umap_neuronal_gut_atlas_disease.png", add_outline=True,
+sc.pl.umap(adata_neuronal_disease, color = ["PLP1", ""HLA-DRA", "CXCL9", "cell_death_signature"], cmap="viridis", save="umap_neuronal_gut_atlas_disease.png", add_outline=True,
          size=50, alpha=0.7, vmax=0.5)
 
 
 # In[51]:
 
 
-sc.pl.umap(adata_neuronal, color = ["PLP1", "CD74", "CXCL9", "cell_death_signature"], cmap="viridis", save="umap_neuronal_gut_atlas_PLP1.png", add_outline=True,
+sc.pl.umap(adata_neuronal, color = ["PLP1", ""HLA-DRA", "CXCL9", "cell_death_signature"], cmap="viridis", save="umap_neuronal_gut_atlas_PLP1.png", add_outline=True,
          size=50, alpha=0.7, vmax=3.5)
 
 
 # In[52]:
 
 
-sc.pl.umap(adata_neuronal_disease, color = ["PLP1", "CD74", "CXCL9", "cell_death_signature"], cmap="viridis", save="umap_neuronal_gut_atlas_disease_PLP1.png", add_outline=True,
+sc.pl.umap(adata_neuronal_disease, color = ["PLP1", ""HLA-DRA", "CXCL9", "cell_death_signature"], cmap="viridis", save="umap_neuronal_gut_atlas_disease_PLP1.png", add_outline=True,
          size=50, alpha=0.7, vmax=3.5)
 
 
