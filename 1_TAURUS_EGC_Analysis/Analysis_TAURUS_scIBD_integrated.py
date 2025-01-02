@@ -369,8 +369,6 @@ genes_in_adata = [gene for gene in cell_death_combined_list if gene in adata_gli
 # Extract expression data for these genes
 expression_data = adata_glial[:, genes_in_adata].X.toarray()  # Converts to dense format if sparse
 
-print(expression_data.head())
-
 
 # In[27]:
 
@@ -488,9 +486,16 @@ sc.pl.violin(adata_glial,
             rotation=45)
 
 
-# In[55]:
+# In[1]:
 
 
 # export requirements file
-get_ipython().system('pip freeze > requirements_TAURUS.txt')
+get_ipython().system('echo "# Python version: $(python --version)" > requirements_TAURUS.txt')
+get_ipython().system('pip freeze >> requirements_TAURUS.txt')
+
+
+# In[ ]:
+
+
+
 
