@@ -8,3 +8,10 @@ Gut_cell_atlas.ipynb
 ../omnipathr-log/
 .Rhistory
 omnipathr-log
+..gitignore.swp
+1_TAURUS_EGC_Analysis/Analysis_TAURUS_scIBD_integrated.html
+1_TAURUS_EGC_Analysis/Analysis_TAURUS_scIBD_integrated_files/
+1_TAURUS_EGC_Analysis/_publish.yml
+1_TAURUS_EGC_Analysis/figures/
+2_Gut_cell_atlas_EGC_Analysis/Gut_cell_atlas.html
+2_Gut_cell_atlas_EGC_Analysis/Gut_cell_atlas_files/
